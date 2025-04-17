@@ -1,0 +1,528 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Disaster Alert System</title>
+    
+    <!-- AOS Animation Library -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet" />
+    
+    
+    <style>
+        /* RESET & BASE */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #111;
+            color: #fff;
+            line-height: 1.6;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* VIDEO BACKGROUND */
+        #bg-video {
+            position: fixed;
+            top: 0;
+            left: 0;
+            min-width: 100vw;
+            min-height: 100vh;
+            object-fit: cover;
+            z-index: -1;
+            opacity: 0.7;
+        }
+
+        /* HOME BUTTON */
+        .home-btn {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            z-index: 2;
+        }
+
+        .home-btn a {
+            background: #ff3c3c;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: 0.3s ease;
+        }
+
+        .home-btn a:hover {
+            background: #ff5f5f;
+            box-shadow: 0 0 10px #ff3c3c99;
+        }
+
+        /* HERO SECTION */
+        .hero {
+            padding: 100px 20px 40px;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 6rem;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px #000;
+        }
+
+        .hero p {
+            font-size: 2.2rem;
+            margin-bottom: 2rem;
+        }
+
+        /* FEATURE CARDS */
+        .features {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 30px;
+            padding: 60px 20px;
+        }
+
+        .feature-card {
+            background: rgba(44, 44, 44, 0.9);
+            border-radius: 12px;
+            padding: 30px 25px;
+            width: 300px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px) scale(1.03);
+            border-color: #ff3c3c;
+            box-shadow: 0 0 20px rgba(255, 60, 60, 0.3);
+        }
+
+        .feature-card h2 {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+        }
+
+        .feature-card p {
+            font-size: 1rem;
+            color: #ccc;
+        }
+
+        /* SLIDER SECTION */
+        .slider-section {
+            padding: 40px 20px;
+            background: rgba(0, 0, 0, 0.6);
+        }
+
+        .slider-section h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .slider {
+            max-width: 800px;
+            margin: 0 auto;
+            overflow: hidden;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .slider img {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            display: none;
+        }
+
+        .slider img.active {
+            display: block;
+            animation: fadein 1s ease-in-out;
+        }
+
+        @keyframes fadein {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* CONTACT SECTION */
+        .contact {
+            background: rgba(0, 0,  0, 0.6);
+            padding: 60px 20px;
+            text-align: center;
+        }
+
+        .contact h2 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+
+        .contact p {
+            font-size: 1rem;
+            margin-bottom: 15px;
+            color: #ccc;
+        }
+
+        .contact a {
+            color: #00c4ff;
+            text-decoration: underline;
+        }
+
+        /* FOOTER */
+        footer {
+            background: #000;
+            text-align: center;
+            padding: 1rem;
+            font-size: 0.9rem;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .hero p {
+                font-size: 1rem;
+            }
+
+            .features {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+
+        /* Safety Tips Floating Button */
+        .tips-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            align-items: flex-end;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        .tips-icon {
+            background: linear-gradient(45deg, #ff007f, #ff7f00, #7fff00, #00ff7f, #00ffff, #007fff, #0000ff, #7f00ff);
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px; /* Increased font size */
+            color: transparent; /* Make text transparent for gradient effect */
+            background-clip: text;
+            -webkit-background-clip: text;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .tips-box {
+            background: rgba(44, 44, 44, 0.9);
+            border-radius: 12px;
+            padding: 15px 20px;
+            max-width: 300px;
+            border-left: 4px solid var(--primary-blue);
+            transform: translateY(20px);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .tips-container:hover .tips-box {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .tips-content {
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Typing Animation */
+        .typing {
+            border-right: 2px solid white;
+            animation: blink 0.7s infinite;
+        }
+
+        @keyframes blink {
+            50% { border-color: transparent; }
+        }
+        .logo{
+            
+            width: 1500px;
+            height: 1000px;
+
+        }
+        .footer {
+            background: var(--primary);
+            color: white;
+            padding: 2rem 1rem;
+            margin-top: auto;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+    
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+    
+        .footer-section h3 {
+            color: var(--secondary);
+            margin-bottom: 1rem;
+        }
+    
+        .footer-section p {
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+    
+        .footer-features {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+    
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+    
+        .feature-icon {
+            font-size: 1.2rem;
+        }
+        @import url('https://fonts.googleapis.com/css?family=Space%20Grotesk:700|Space%20Grotesk:400');
+
+:root {
+/*  change this for scaling  */
+  --m: 4rem;
+  
+  --red: #FF6565;
+  --pink: #FF64F9;
+  --purple: #6B5FFF;
+  --blue: #4D8AFF;
+  --green: #5BFF89;
+  --yellow: #FFEE55;
+  --orange: #FF6D1B;
+  
+}
+body {
+  background-color: #141516;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+}
+
+button {
+  border: calc(0.08 * var(--m)) solid transparent;
+  position: relative;
+  color: #F3F3F3;
+  font-family: 'Space Grotesk';
+  font-size: var(--m);
+  border-radius: calc(0.7 * var(--m));
+  padding: calc(0.5 * var(--m)) calc(1 * var(--m));
+  display: flex;
+  justify-content: center;
+  cursor: pointer;
+  
+  background:linear-gradient(#121213, #121213), linear-gradient(#121213 50%, rgba(18, 18, 19, 0.6) 80%, rgba(18, 18, 19, 0)),  linear-gradient(90deg, var(--orange), var(--yellow), var(--green), var(--blue), var(--purple), var(--pink), var(--red));
+  background-origin: border-box;
+  background-clip: padding-box, border-box, border-box;
+  background-size: 200%;
+  animation: animate 2s infinite linear;
+}
+
+button::before {
+  content: '';
+  background: linear-gradient(90deg, var(--orange), var(--yellow), var(--green), var(--blue), var(--purple), var(--pink), var(--red));
+  height: 30%;
+  width: 60%;
+  position: absolute;
+  bottom: -20%;
+  z-index: -5;
+  background-size: 200%;
+  animation: animate 2s infinite linear;
+  filter: blur(calc(0.8 * var(--m)));
+}
+
+button:hover, button:hover::before {
+  animation: animate 0.5s infinite linear;
+}
+
+@keyframes animate {
+  0% {background-position: 0}
+  100% {background-position: 200%}
+}
+
+@media screen and (max-width: 1000px) {
+  :root {
+    --m: 2rem;
+  }
+}
+a{
+    text-decoration: none;
+}
+    </style>
+</head>
+
+<body>
+
+    <!-- Video Background -->
+    <video autoplay muted loop playsinline id="bg-video">
+        <source loop src="assets/videos/background.mp4" type="video/mp4" />
+        Your browser does not support HTML5 video.
+    </video>
+
+    <!-- Hero Section -->
+    <section class="hero" data-aos="fade-up">
+        <!-- Logo -->
+<img src="assets/images/logo.png" alt="Disaster Alert System Logo" class="logo" />
+<!-- 
+        <h1>REAL TIME DISASTER ALERT SYSTEM</h1>
+        <p>Get real-time alerts for natural disasters in your area.</p> -->
+    </section>
+    <a href="login.html">
+        <button id="getStartedBtn">Get started</button>
+      </a>
+    
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        AOS.init({ duration: 1000 });
+
+        // Image Slider Logic
+        const images = document.querySelectorAll('#slider img');
+        let current = 0;
+
+        function showSlide(index) {
+            images.forEach((img, i) => img.classList.remove('active'));
+            images[index].classList.add('active');
+        }
+
+        function nextSlide() {
+            current = (current + 1) % images.length;
+            showSlide(current);
+        }
+
+        showSlide(current);
+        setInterval(nextSlide, 3000); // every 3 seconds
+
+        // Safety Tips Data
+        const safetyTips = [
+            "During floods, move to higher ground immediately",
+            "Drop, cover, and hold on during earthquakes",
+            "Have an emergency kit with 3 days of supplies",
+            "Know your community's evacuation routes",
+            "Stay informed with official weather alerts"
+        ];
+
+        let currentTip = 0;
+        let isTyping = false;
+        let tipTimeout;
+
+        function showNextTip() {
+            if (isTyping) return;
+
+            const tipsElement = document.getElementById('tipsText');
+            tipsElement.innerHTML = '';
+
+            // Show box before typing
+            document.querySelector('.tips-box').style.opacity = '1';
+            document.querySelector('.tips-box').style.transform = 'translateY(0)';
+
+            isTyping = true;
+            let i = 0;
+            const tip = safetyTips[currentTip];
+
+            function typeWriter() {
+                if (i < tip.length) {
+                    tipsElement.innerHTML += tip.charAt(i);
+                    tipsElement.classList.add('typing');
+                    i++;
+                    setTimeout(typeWriter, 50);
+                } else {
+                    tipsElement.classList.remove('typing');
+                    isTyping = false;
+
+                    // Hide after delay
+                    tipTimeout = setTimeout(() => {
+                        document.querySelector('.tips-box').style.opacity = '0';
+                        document.querySelector('.tips-box').style.transform = 'translateY(20px)';
+
+                        // Show next tip after hiding
+                        setTimeout(() => {
+                            currentTip = (currentTip + 1) % safetyTips.length;
+                            showNextTip();
+                        }, 1000);
+                    }, 3000);
+                }
+            }
+
+            typeWriter();
+        }
+
+        // Start the cycle
+        showNextTip();
+
+        // Pause on hover
+        document.querySelector('.tips-container').addEventListener('mouseenter', () => {
+            clearTimeout(tipTimeout);
+        });
+
+        document.querySelector('.tips-container').addEventListener('mouseleave', () => {
+            if (!isTyping) {
+                tipTimeout = setTimeout(() => {
+                    document.querySelector('.tips-box').style.opacity = '0';
+                    document.querySelector('.tips-box').style.transform = 'translateY(20px)';
+                    setTimeout(showNextTip, 1000);
+                }, 3000);
+            }
+        });
+    </script>
+    <!-- Place this before </body> -->
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("location-card").addEventListener("click", () => {
+        window.location.href = "pages/location.html";
+      });
+    });
+  </script>
+  <script>
+    document.getElementById("getStartedBtn").addEventListener("click", () => {
+      window.location.href = "login.html";
+    });
+  </script>
+  
+  </body>
+  
+  
+</body>
+</html>

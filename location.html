@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Disaster Location</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    
+    <style>
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+    // Initialize the map centered on India
+    const map = L.map('map').setView([20.5937, 78.9629], 5); // India center
+
+    // Load map tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Define icons for different disaster types (using sample icon URLs)
+    const earthquakeIcon = L.icon({
+        iconUrl: 'https://img.icons8.com/?size=100&id=12448&format=png&color=000000', // Earthquake icon URL
+        iconSize: [32, 32], // Size of the icon
+        iconAnchor: [16, 32], // Anchor point of the icon
+        popupAnchor: [0, -32] // Where the popup appears relative to the icon
+    });
+
+    // Example disaster data (you should replace this with actual fetched data)
+    const disasters = [
+    { type: 'Earthquake', location: 'Khordha', lat: 20.145385 , lon: 85.612638 },
+];
+
+    // Add disaster markers with the appropriate icons
+    disasters.forEach(d => {
+        let disasterIcon;
+
+        if (d.type === 'Earthquake') {
+            disasterIcon = earthquakeIcon;
+        } else if (d.type === 'Flood') {
+            disasterIcon = floodIcon;
+        } else if (d.type === 'Fire') {
+            disasterIcon = fireIcon;
+        }
+
+        // Add marker to the map with the respective icon
+        L.marker([d.lat, d.lon], { icon: disasterIcon })
+            .addTo(map)
+            .bindPopup(`⚠️ ${d.type} in ${d.location}`);
+    });
+
+</script>
+</body>
+</html>

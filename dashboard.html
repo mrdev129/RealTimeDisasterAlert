@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disaster Response Dashboard PRO</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --high: #e74c3c;
+            --medium: #f39c12;
+            --low: #f1c40f;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        body {
+            background: #ecf0f1;
+            min-height: 100vh;
+        }
+
+        .nav-bar {
+            background: var(--primary);
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .nav-button {
+            background: var(--secondary);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 0 0.5rem;
+        }
+
+        .nav-button:hover {
+            filter: brightness(1.1);
+        }
+
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 1rem;
+            padding: 1rem;
+            height: calc(100vh - 60px);
+        }
+
+        .alert-section {
+            display: grid;
+            grid-template-rows: auto 1fr;
+            background: white;
+            border-radius: 10px;
+            padding: 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .alert-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+            overflow-y: auto;
+            padding: 1rem 0;
+        }
+
+        .alert-card {
+            background: white;
+            border-left: 5px solid var(--low);
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+
+        .alert-card.high { border-color: var(--high); }
+        .alert-card.medium { border-color: var(--medium); }
+
+        .alert-card:hover {
+            transform: translateY(-3px);
+        }
+
+        #map {
+            height: 100%;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .location-panel {
+            background: white;
+            border-radius: 10px;
+            padding: 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        .location-panel.active {
+            display: block;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        .safety-tips {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            border-radius: 10px;
+            padding: 1rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            max-width: 300px;
+            transform: translateY(150%);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            z-index: 9999;
+        }
+
+        .safety-tips.visible {
+            transform: translateY(0);
+        }
+
+        .tip-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .tip-content {
+            flex-grow: 1;
+        }
+        .footer {
+            background: var(--primary);
+            color: white;
+            padding: 2rem 1rem;
+            margin-top: auto;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+    
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+    
+        .footer-section h3 {
+            color: var(--secondary);
+            margin-bottom: 1rem;
+        }
+    
+        .footer-section p {
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+    
+        .footer-features {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+    
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+    
+        .feature-icon {
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav-bar">
+        <h2>🌍 Disaster Response System</h2>
+        <div>
+            <button class="nav-button" id="toggleLocation">📍 Location</button>
+            <button class="nav-button" id="refreshAlerts">🔄 Refresh</button>
+            <button class="nav-button" id="toggleTips">🛡️ Safety Tips</button>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+        <div class="alert-section">
+            <h3>🚨 Live Disaster Alerts</h3>
+            <div class="alert-grid" id="alertContainer"></div>
+        </div>
+
+        <div id="map"></div>
+
+        <div class="location-panel" id="locationPanel">
+            <h3>📍 Your Location</h3>
+            <div id="locationInfo">
+                <p>Detecting your location...</p>
+                <div id="nearbyRisks"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="safety-tips" id="safetyTips">
+        <div style="position: relative; width: 100%;">
+            <button id="closeTips" style="position: absolute; top: 5px; right: 5px; border: none; background: none; color: var(--primary)">×</button>
+            <div class="tip-header" style="display: flex; align-items: center; gap: 0.5rem;">
+                <div class="tip-icon" id="tipIcon">🛡️</div>
+                <h4 style="margin: 0;">Safety Advisory</h4>
+            </div>
+            <div class="tip-content" id="tipContent" style="margin-top: 0.5rem;"></div>
+        </div>
+    </div>
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>🌐 Our Vision</h3>
+                <p>Creating a safer world through real-time disaster awareness and proactive community response.</p>
+            </div>
+            <div class="footer-section">
+                <h3>🛡️ Core Features</h3>
+                <div class="footer-features">
+                    <div class="feature-item">
+                        <span class="feature-icon">🚨</span>
+                        Live Alert System
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">🧠</span>
+                        AI Risk Assessment
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">📍</span>
+                        Real-time Geolocation
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">📊</span>
+                        Interactive Visualization
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">🔄</span>
+                        Auto-Refresh Data
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">📱</span>
+                        Mobile Responsive
+                    </div>
+                </div>
+            </div>
+            <div class="footer-section">
+                <h3>🌍 Commitment</h3>
+                <p>24/7 monitoring • Global coverage • Community-first approach • Open data initiatives</p>
+            </div>
+        </div>
+    </footer>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+      const cityCoordinates = {
+        "Mumbai": [19.0760, 72.8777],
+        "Delhi": [28.6139, 77.2090],
+        "Chennai": [13.0827, 80.2707],
+        "Kolkata": [22.5726, 88.3639],
+        "Bengaluru": [12.9716, 77.5946],
+        "Hyderabad": [17.3850, 78.4867],
+        "Shillong": [25.5788, 91.8933],
+        "Patna": [25.5941, 85.1376],
+        "Lucknow": [26.8467, 80.9462],
+        "Visakhapatnam": [17.6868, 83.2185],
+        "Nagpur": [21.1458, 79.0882],
+        "Dehradun": [30.3165, 78.0322]
+      };
+  
+      const cities = Object.keys(cityCoordinates);
+      const disasterTypes = ["Earthquake", "Flood", "Cyclone"];
+      const severityIcons = { High: '🚨', Medium: '⚠️', Low: 'ℹ️' };
+      const typeIcons = { Earthquake: '🌋', Flood: '🌊', Cyclone: '🌀' };
+  
+      let map, userLocation, currentTipIndex = 0, currentTipTimeout;
+      const markers = new Map();
+      let currentAlerts = [];
+  
+      function initMap() {
+        map = L.map('map').setView([20.5937, 78.9629], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+      }
+  
+      function generateAlert() {
+        const city = cities[Math.floor(Math.random() * cities.length)];
+        return {
+          type: disasterTypes[Math.floor(Math.random() * disasterTypes.length)],
+          location: city,
+          severity: ['Low', 'Medium', 'High'][Math.floor(Math.random() * 3)],
+          value: (Math.random() * 10).toFixed(1),
+          coords: cityCoordinates[city],
+          timestamp: new Date()
+        };
+      }
+  
+      function processAlert(alert) {
+        return {
+          ...alert,
+          safetyTip: generateSafetyTip(alert),
+          formattedValue: `${alert.value} ${alert.type === 'Earthquake' ? 'Magnitude' : alert.type === 'Flood' ? 'Meters' : 'km/h'}`
+        };
+      }
+  
+      function generateSafetyTip(alert) {
+        const tips = {
+          Earthquake: {
+            High: "🚨 Evacuate buildings immediately! Move to open ground.",
+            Medium: "⚠️ Take cover under sturdy furniture. Stay alert.",
+            Low: "ℹ️ Secure loose objects. Monitor updates."
+          },
+          Flood: {
+            High: "🚨 Move to higher ground immediately! Avoid walking in water.",
+            Medium: "⚠️ Turn off utilities. Prepare evacuation kit.",
+            Low: "ℹ️ Stay alert for rising water levels."
+          },
+          Cyclone: {
+            High: "🚨 Stay indoors! Secure windows and doors.",
+            Medium: "⚠️ Prepare emergency supplies. Avoid travel.",
+            Low: "ℹ️ Monitor weather updates regularly."
+          }
+        };
+        return tips[alert.type][alert.severity];
+      }
+  
+      function updateAlerts() {
+        const container = document.getElementById('alertContainer');
+        container.innerHTML = currentAlerts.map(alert => `
+          <div class="alert-card ${alert.severity.toLowerCase()}" data-aos="fade-up"
+               onclick="flyToLocation(${JSON.stringify(alert.coords)}, '${alert.location}')">
+            <h4>${typeIcons[alert.type]} ${alert.type} in ${alert.location}</h4>
+            <div style="color: ${getSeverityColor(alert.severity)}">
+              ${severityIcons[alert.severity]} ${alert.severity} Risk
+            </div>
+            <p>📈 ${alert.formattedValue}</p>
+            <p>🕒 ${new Date(alert.timestamp).toLocaleTimeString()}</p>
+            <div class="safety-tip">${alert.safetyTip}</div>
+          </div>
+        `).join('');
+      }
+  
+      function flyToLocation(coords, location) {
+        map.flyTo(coords, 12);
+        const marker = markers.get(location);
+        if (marker) marker.openPopup();
+      }
+  
+      function updateMapMarkers() {
+        markers.clear();
+        currentAlerts.forEach(alert => {
+          const marker = L.marker(alert.coords, {
+            icon: L.divIcon({
+              className: `map-marker ${alert.severity.toLowerCase()}`,
+              html: `<div style="background:${getSeverityColor(alert.severity)}; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">${typeIcons[alert.type]}</div>`,
+              iconSize: [30, 30]
+            })
+          }).bindPopup(`
+            <b>${typeIcons[alert.type]} ${alert.type} Alert</b><br>
+            <em>${alert.location}</em><br>
+            Severity: ${severityIcons[alert.severity]} ${alert.severity}<br>
+            Value: ${alert.formattedValue}<hr>
+            ${alert.safetyTip}
+          `);
+          marker.addTo(map);
+          markers.set(alert.location, marker);
+        });
+      }
+  
+      function getSeverityColor(severity) {
+        return {
+          High: '#e74c3c',
+          Medium: '#f39c12',
+          Low: '#f1c40f'
+        }[severity];
+      }
+  
+      function updateSafetyTips() {
+        const tips = currentAlerts.map(alert => ({
+          icon: `${typeIcons[alert.type]} ${severityIcons[alert.severity]}`,
+          text: alert.safetyTip
+        }));
+  
+        if (!tips.length) return;
+        currentTipIndex = currentTipIndex >= tips.length - 1 ? 0 : currentTipIndex + 1;
+        const tip = tips[currentTipIndex];
+        const tipsPanel = document.getElementById('safetyTips');
+        const tipIcon = document.getElementById('tipIcon');
+        const tipContent = document.getElementById('tipContent');
+  
+        tipsPanel.classList.remove('visible');
+        setTimeout(() => {
+          tipIcon.textContent = tip.icon;
+          tipContent.textContent = tip.text;
+          tipsPanel.classList.add('visible');
+        }, 300);
+  
+        clearTimeout(currentTipTimeout);
+        currentTipTimeout = setTimeout(() => {
+          tipsPanel.classList.remove('visible');
+        }, 5000);
+      }
+  
+      document.getElementById('toggleLocation').addEventListener('click', () => {
+        const panel = document.getElementById('locationPanel');
+        panel.classList.toggle('active');
+  
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(pos => {
+            const { latitude, longitude } = pos.coords;
+  
+            document.getElementById('locationInfo').innerHTML = `
+              <p>Latitude: ${latitude.toFixed(4)}</p>
+              <p>Longitude: ${longitude.toFixed(4)}</p>
+              <div class="nearby-risks"><h4>Nearby Risks</h4><p>Scanning nearby alerts...</p></div>
+            `;
+  
+            map.flyTo([latitude, longitude], 12);
+  
+            const userMarker = L.marker([latitude, longitude], {
+              icon: L.divIcon({
+                className: 'map-marker',
+                html: `<div style="background:#3498db; color:white; border-radius:50%; width:30px; height:30px; display:flex; align-items:center; justify-content:center;">📍</div>`,
+                iconSize: [30, 30]
+              })
+            }).bindPopup("<b>📍 Your Current Location</b>");
+  
+            userMarker.addTo(map);
+          });
+        } else {
+          alert("Geolocation is not supported by your browser.");
+        }
+      });
+  
+      document.getElementById('toggleTips').addEventListener('click', () => {
+        document.getElementById('safetyTips').classList.toggle('visible');
+      });
+  
+      document.getElementById('closeTips').addEventListener('click', () => {
+        document.getElementById('safetyTips').classList.remove('visible');
+      });
+  
+      document.getElementById('refreshAlerts').addEventListener('click', () => {
+        currentAlerts = Array.from({ length: 6 }, () => processAlert(generateAlert()));
+        updateAlerts();
+        updateMapMarkers();
+        updateSafetyTips();
+      });
+  
+      function init() {
+        initMap();
+        AOS.init();
+        currentAlerts = Array.from({ length: 6 }, () => processAlert(generateAlert()));
+        updateAlerts();
+        updateMapMarkers();
+        setInterval(() => {
+          currentAlerts = [processAlert(generateAlert()), ...currentAlerts.slice(0, 9)];
+          updateAlerts();
+          updateMapMarkers();
+          updateSafetyTips();
+        }, 5000);
+        setTimeout(updateSafetyTips, 1000);
+      }
+  
+      init();
+    </script>
+</body>
+</html>
+

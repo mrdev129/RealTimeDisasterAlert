@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Disaster Alert System - Auth</title>
+  <link href="https://fonts.googleapis.com/css?family=Montserrat:400,800" rel="stylesheet" />
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+  <style>
+    /* Original CSS preserved */
+    @import url('https://fonts.googleapis.com/css?family=Montserrat:400,800');
+
+    * {
+        box-sizing: border-box;
+    }
+
+    body, html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        font-family: 'Montserrat', sans-serif;
+        overflow: hidden;
+    }
+
+    .video-bg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        min-width: 100%;
+        min-height: 100%;
+        width: auto;
+        height: auto;
+        z-index: -1;
+        object-fit: cover;
+        background-position: center;
+        background-size: cover;
+    }
+
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        height: 100vh;
+        background: #000;
+    }
+
+    h1 {
+        font-weight: bold;
+        margin: 0;
+    }
+
+    p {
+        font-size: 14px;
+        font-weight: 100;
+        line-height: 20px;
+        letter-spacing: 0.5px;
+        margin: 20px 0 30px;
+        color: #fff;
+    }
+
+    a {
+        color: #333;
+        font-size: 14px;
+        text-decoration: none;
+        margin: 15px 0;
+    }
+
+    button {
+        border-radius: 20px;
+        border: 1px solid #FF4B2B;
+        background-color: #FF4B2B;
+        color: #FFFFFF;
+        font-size: 12px;
+        font-weight: bold;
+        padding: 12px 45px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        transition: transform 80ms ease-in;
+        cursor: pointer;
+    }
+
+    button:active {
+        transform: scale(0.95);
+    }
+
+    button.ghost {
+        background-color: transparent;
+        border-color: #FFFFFF;
+    }
+
+    form {
+        background-color: #FFFFFF;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        padding: 0 50px;
+        height: 100%;
+        text-align: center;
+    }
+
+    input {
+        background-color: #eee;
+        border: none;
+        padding: 12px 15px;
+        margin: 8px 0;
+        width: 100%;
+    }
+
+    .container {
+        background-color: rgba(255, 255, 255, 0.9);
+        border-radius: 10px;
+        box-shadow: 0 14px 28px rgba(0,0,0,0.25), 
+                    0 10px 10px rgba(0,0,0,0.22);
+        position: relative;
+        overflow: hidden;
+        width: 768px;
+        max-width: 100%;
+        min-height: 480px;
+        z-index: 1;
+    }
+
+    .form-container {
+        position: absolute;
+        top: 0;
+        height: 100%;
+        transition: all 0.6s ease-in-out;
+    }
+
+    .sign-in-container {
+        left: 0;
+        width: 50%;
+        z-index: 2;
+    }
+
+    .container.right-panel-active .sign-in-container {
+        transform: translateX(100%);
+    }
+
+    .sign-up-container {
+        left: 0;
+        width: 50%;
+        opacity: 0;
+        z-index: 1;
+    }
+
+    .container.right-panel-active .sign-up-container {
+        transform: translateX(100%);
+        opacity: 1;
+        z-index: 5;
+        animation: show 0.6s;
+    }
+
+    @keyframes show {
+        0%, 49.99% {
+            opacity: 0;
+            z-index: 1;
+        }
+        50%, 100% {
+            opacity: 1;
+            z-index: 5;
+        }
+    }
+
+    .overlay-container {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        width: 50%;
+        height: 100%;
+        overflow: hidden;
+        transition: transform 0.6s ease-in-out;
+        z-index: 100;
+    }
+
+    .container.right-panel-active .overlay-container {
+        transform: translateX(-100%);
+    }
+
+    .overlay {
+        background: linear-gradient(to right, #FF4B2B, #FF416C);
+        background-repeat: no-repeat;
+        background-size: cover;
+        background-position: 0 0;
+        color: #FFFFFF;
+        position: relative;
+        left: -100%;
+        height: 100%;
+        width: 200%;
+        transform: translateX(0);
+        transition: transform 0.6s ease-in-out;
+    }
+
+    .container.right-panel-active .overlay {
+        transform: translateX(50%);
+    }
+
+    .overlay-panel {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        padding: 0 40px;
+        text-align: center;
+        top: 0;
+        height: 100%;
+        width: 50%;
+        transform: translateX(0);
+        transition: transform 0.6s ease-in-out;
+    }
+
+    .overlay-left {
+        transform: translateX(-20%);
+    }
+
+    .container.right-panel-active .overlay-left {
+        transform: translateX(0);
+    }
+
+    .overlay-right {
+        right: 0;
+        transform: translateX(0);
+    }
+
+    .container.right-panel-active .overlay-right {
+        transform: translateX(20%);
+    }
+
+    .logo-img {
+        width: 200px;
+        height: 200px;
+        margin-bottom: 15px;
+    }
+
+    footer {
+        background-color: #222;
+        color: #fff;
+        font-size: 14px;
+        bottom: 0;
+        position: fixed;
+        left: 0;
+        right: 0;
+        text-align: center;
+        z-index: 999;
+    }
+
+    footer p {
+        margin: 10px 0;
+    }
+
+    footer i {
+        color: red;
+    }
+
+    footer a {
+        color: #3c97bf;
+        text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <video class="video-bg" autoplay muted loop playsinline>
+    <source src="assets/videos/background.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+
+  <div class="container" id="container">
+    <div class="form-container sign-up-container">
+      <form id="signupForm">
+        <h1>Create Account</h1>
+        <input type="text" id="signupName" placeholder="Name" required />
+        <input type="email" id="signupEmail" placeholder="Email" required />
+        <input type="tel" id="signupMobile" placeholder="Mobile Number" required />
+        <input type="password" id="signupPassword" placeholder="Password" required />
+        <button type="submit">Sign Up</button>
+      </form>
+    </div>
+
+    <div class="form-container sign-in-container">
+      <form id="loginForm">
+        <h1>Sign in</h1>
+        <input type="email" id="loginEmail" placeholder="Email" required />
+        <input type="password" id="loginPassword" placeholder="Password" required />
+        <a href="#" id="forgotPassword">Forgot your password?</a>
+        <button type="submit">Sign In</button>
+      </form>
+    </div>
+
+    <div class="overlay-container">
+      <div class="overlay">
+        <div class="overlay-panel overlay-left">
+          <img src="assets/images/logo.png" alt="Logo" class="logo-img" />
+          <h1>Welcome Back!</h1>
+          <p>To keep connected with us please login with your personal info</p>
+          <button class="ghost" id="signIn">Sign In</button>
+        </div>
+        <div class="overlay-panel overlay-right">
+          <img src="assets/images/logo.png" alt="Logo" class="logo-img" />
+          <h1>Hello, Friend!</h1>
+          <p>Enter your personal details and start your journey with us</p>
+          <button class="ghost" id="signUp">Sign Up</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>
+      Disaster Alert System © 2024 | Real-Time Monitoring Platform
+    </p>
+  </footer>
+  <script>
+    // Firebase Configuration
+    const firebaseConfig = {
+    apiKey: "AIzaSyDHdio2J-d7L9iZPwftoM0f80C17-9Xh18",
+    authDomain: "alertify-b36d5.firebaseapp.com",
+    projectId: "alertify-b36d5",
+    storageBucket: "alertify-b36d5.firebasestorage.app",
+    messagingSenderId: "748826661414",
+    appId: "1:748826661414:web:3cc5aeeece9e638f680ce7"
+  };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value.trim();
+
+      // Clear previous errors
+      clearFormErrors();
+
+      // Basic validation
+      if (!validateEmail(email)) {
+          showError('loginEmail', 'Invalid email format');
+          return;
+      }
+      if (!password) {
+          showError('loginPassword', 'Password required');
+          return;
+      }
+
+      try {
+          // Show loading state
+          const loginBtn = document.querySelector('#loginForm button');
+          loginBtn.disabled = true;
+          loginBtn.innerHTML = 'Signing in...';
+
+          const userCredential = await auth.signInWithEmailAndPassword(email, password);
+          
+          // Verify user data exists
+          const userDoc = await db.collection('users').doc(userCredential.user.uid).get();
+          if (!userDoc.exists) {
+              await auth.signOut();
+              throw new Error('user-data-not-found');
+          }
+
+          // Successful login redirect
+          window.location.href = 'landing.html';
+
+      } catch (error) {
+          handleAuthError(error);
+      } finally {
+          // Reset button state
+          const loginBtn = document.querySelector('#loginForm button');
+          loginBtn.disabled = false;
+          loginBtn.innerHTML = 'Sign In';
+      }
+  });
+
+  // Enhanced Error Handler
+  function handleAuthError(error) {
+      const errorDetails = {
+          'auth/invalid-email': 'Invalid email address',
+          'auth/user-disabled': 'Account disabled',
+          'auth/user-not-found': 'No account found with this email',
+          'auth/wrong-password': 'Incorrect password',
+          'auth/too-many-requests': 'Too many attempts. Try again later.',
+          'auth/network-request-failed': 'Network error. Check your connection.',
+          'user-data-not-found': 'Account configuration error. Contact support.'
+      };
+
+      const message = errorDetails[error.code || error.message] || 'Login failed. Please try again.';
+      alert(message);
+      console.error('Login Error:', error);
+  }
+
+    // UI Elements
+    const container = document.getElementById('container');
+    const signUpButton = document.getElementById('signUp');
+    const signInButton = document.getElementById('signIn');
+    const forgotPassword = document.getElementById('forgotPassword');
+
+    // Form References
+    const signupForm = document.getElementById('signupForm');
+    const loginForm = document.getElementById('loginForm');
+
+    // Panel Animation Handlers
+    signUpButton.addEventListener('click', () => {
+      container.classList.add("right-panel-active");
+      clearFormErrors();
+    });
+
+    signInButton.addEventListener('click', () => {
+      container.classList.remove("right-panel-active");
+      clearFormErrors();
+    });
+
+    // Form Validation Functions
+    function validateSignup() {
+      const name = signupForm.signupName.value.trim();
+      const email = signupForm.signupEmail.value.trim();
+      const mobile = signupForm.signupMobile.value.trim();
+      const password = signupForm.signupPassword.value.trim();
+
+      let isValid = true;
+
+      if (!/^[A-Za-z ]{2,30}$/.test(name)) {
+        showError('signupName', 'Invalid name (2-30 letters)');
+        isValid = false;
+      }
+
+      if (!/^\d{10}$/.test(mobile)) {
+        showError('signupMobile', '10 digits required');
+        isValid = false;
+      }
+
+      if (password.length < 6) {
+        showError('signupPassword', 'Min 6 characters');
+        isValid = false;
+      }
+
+      if (!validateEmail(email)) {
+        showError('signupEmail', 'Invalid email format');
+        isValid = false;
+      }
+
+      return isValid;
+    }
+
+    function validateLogin() {
+      const email = loginForm.loginEmail.value.trim();
+      const password = loginForm.loginPassword.value.trim();
+      let isValid = true;
+
+      if (!email) {
+        showError('loginEmail', 'Email required');
+        isValid = false;
+      }
+
+      if (!password) {
+        showError('loginPassword', 'Password required');
+        isValid = false;
+      }
+
+      return isValid;
+    }
+
+    // Form Submission Handlers
+    signupForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!validateSignup()) return;
+
+      const { signupName, signupEmail, signupMobile, signupPassword } = signupForm;
+      
+      try {
+        const userCredential = await auth.createUserWithEmailAndPassword(
+          signupEmail.value.trim(),
+          signupPassword.value.trim()
+        );
+
+        await db.collection('users').doc(userCredential.user.uid).set({
+          name: signupName.value.trim(),
+          email: signupEmail.value.trim(),
+          mobile: signupMobile.value.trim(),
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        alert('Account created! Please sign in');
+        container.classList.remove("right-panel-active");
+        signupForm.reset();
+      } catch (error) {
+        handleAuthError(error);
+      }
+    });
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!validateLogin()) return;
+
+      const { loginEmail, loginPassword } = loginForm;
+      
+      try {
+        const userCredential = await auth.signInWithEmailAndPassword(
+          loginEmail.value.trim(),
+          loginPassword.value.trim()
+        );
+
+        const userDoc = await db.collection('users').doc(userCredential.user.uid).get();
+        if (!userDoc.exists) throw new Error('User data not found');
+
+        window.location.href = 'landing.html';
+      } catch (error) {
+        handleAuthError(error);
+      }
+    });
+
+    // Error Handling Functions
+    function handleAuthError(error) {
+      const errorMap = {
+        'auth/email-already-in-use': 'Email already registered. Please sign in.',
+        'auth/invalid-email': 'Invalid email format',
+        'auth/weak-password': 'Password must be at least 6 characters',
+        'auth/user-not-found': 'No account found with this email',
+        'auth/wrong-password': 'Incorrect password',
+        'auth/too-many-requests': 'Too many attempts. Try again later.',
+        'auth/network-request-failed': 'Network connection failed',
+        'permission-denied': 'Database error. Contact support.'
+      };
+
+      alert(errorMap[error.code] || 'An error occurred. Please try again.');
+      console.error('Auth Error:', error);
+    }
+
+    function showError(fieldId, message) {
+      const field = document.getElementById(fieldId);
+      field.style.border = '1px solid red';
+      field.insertAdjacentHTML('afterend', `<div class="error-message" style="color:red;font-size:12px">${message}</div>`);
+    }
+
+    function clearFormErrors() {
+      document.querySelectorAll('.error-message').forEach(e => e.remove());
+      document.querySelectorAll('input').forEach(input => 
+        input.style.border = 'none');
+    }
+
+    // Password Reset Handler
+    forgotPassword.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const email = prompt('Enter your email for password reset:');
+      if (email) {
+        try {
+          await auth.sendPasswordResetEmail(email);
+          alert('Password reset email sent. Check your inbox.');
+        } catch (error) {
+          handleAuthError(error);
+        }
+      }
+    });
+
+    // Utility Functions
+    function validateEmail(email) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+  </script>
+
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+</body>
+</html>

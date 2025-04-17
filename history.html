@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Disaster History Dashboard</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: Arial, sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* Background video */
+    #bgVideo {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      z-index: -1;
+      filter: brightness(0.4);
+    }
+
+    h1 {
+      text-align: center;
+      color: #fff;
+      margin-top: 20px;
+    }
+
+    .refresh-button {
+      display: block;
+      margin: 20px auto;
+      padding: 12px 24px;
+      background-color: #00b4d8;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      transition: background-color 0.3s ease;
+    }
+
+    .refresh-button:hover {
+      background-color: #0077b6;
+    }
+
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .panel {
+      background: rgba(255, 255, 255, 0.15);
+      border-left: 6px solid #00b4d8;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+      padding: 20px;
+      width: 300px;
+      border-radius: 12px;
+      transition: transform 0.3s, border-left-color 0.3s;
+      color: #fff;
+    }
+
+    .panel:hover {
+      transform: scale(1.03);
+      border-left-color: #90e0ef;
+    }
+
+    .panel h3 {
+      margin: 0 0 10px;
+      font-size: 20px;
+      color: #caf0f8;
+    }
+
+    .panel p {
+      margin: 5px 0;
+      font-size: 15px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Background Video -->
+  <video autoplay muted loop id="bgVideo">
+    <source src="assets/videos/history.mp4" type="video/mp4">
+    <!-- Fallback -->
+    Your browser does not support the video tag.
+  </video>
+
+  <h1>🌍 Real-Time Disaster History</h1>
+  <button class="refresh-button" onclick="loadDisasters()">🔄 Refresh</button>
+  <div class="container" id="disasterContainer">
+    <!-- Panels go here -->
+  </div>
+
+  <script>
+    const container = document.getElementById('disasterContainer');
+    let lastDisasterHTML = '';
+
+    function formatDate(timestamp) {
+      const date = new Date(timestamp);
+      return date.toLocaleString();
+    }
+
+    // Shuffle utility
+    function shuffleChildren(parent) {
+      const children = Array.from(parent.children);
+      for (let i = children.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        parent.appendChild(children[j]);
+      }
+    }
+
+    async function loadDisasters() {
+      try {
+        const panels = [];
+
+        // USGS Earthquake Data
+        const earthquakeUrl = 'https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&limit=10';
+        const earthquakeResponse = await fetch(earthquakeUrl);
+        const earthquakeData = await earthquakeResponse.json();
+
+        earthquakeData.features.forEach(eq => {
+          const location = eq.properties.place;
+          const time = formatDate(eq.properties.time);
+          const magnitude = eq.properties.mag;
+
+          const div = document.createElement('div');
+          div.className = 'panel';
+          div.innerHTML = `
+            <h3>🌋 Earthquake (M ${magnitude})</h3>
+            <p><strong>Location:</strong> ${location}</p>
+            <p><strong>Time:</strong> ${time}</p>
+          `;
+          panels.push(div);
+        });
+
+        // FEMA Disaster Data
+        const femaUrl = 'https://www.fema.gov/api/open/v2/DisasterDeclarationsSummaries?$top=10&$orderby=declarationDate desc';
+        const femaResponse = await fetch(femaUrl);
+        const femaData = await femaResponse.json();
+
+        femaData.DisasterDeclarationsSummaries.forEach(disaster => {
+          const type = disaster.incidentType;
+          const title = disaster.declarationTitle || 'N/A';
+          const state = disaster.state || 'N/A';
+          const date = formatDate(disaster.declarationDate);
+
+          const div = document.createElement('div');
+          div.className = 'panel';
+          div.innerHTML = `
+            <h3>🆘 ${type}</h3>
+            <p><strong>Title:</strong> ${title}</p>
+            <p><strong>Location:</strong> ${state}</p>
+            <p><strong>Time:</strong> ${date}</p>
+          `;
+          panels.push(div);
+        });
+
+        const newHTML = panels.map(p => p.outerHTML).join('');
+
+        if (newHTML === lastDisasterHTML) {
+          shuffleChildren(container); // Shuffle existing cards
+        } else {
+          container.innerHTML = '';
+          panels.forEach(p => container.appendChild(p));
+          lastDisasterHTML = newHTML;
+        }
+
+      } catch (error) {
+        console.error('Fetch error:', error);
+        container.innerHTML = '<p style="text-align:center; color:red;">Failed to load disaster data.</p>';
+      }
+    }
+
+    window.onload = loadDisasters;
+  </script>
+</body>
+</html>
